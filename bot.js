@@ -46,7 +46,7 @@ const isAdmin = async (ctx) => {
  * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the bot can restrict members.
  */
 const canRestrict = async (ctx) => {
-    const botMember = await ctx.getChatMember(ctx.botInfo.id);
+    const botMember = await ctx.getChatMember(ctx.me.id);
     return botMember.can_restrict_members;
 };
 
@@ -105,8 +105,9 @@ const aplyAction = async (ctx, action, targetUser) => {
  */
 const handleKickBanUnban = async (ctx, action) => {
     if (ctx.message.reply_to_message) {
-        await restrictUser(ctx, async (targetUser) => {
-            await aplyAction(ctx, action, targetUser);
+        const repliedUser = ctx.message.reply_to_message.from.id;
+        await restrictUser(ctx, async () => {
+            await aplyAction(ctx, action, repliedUser);
         });
     } else {
         ctx.reply(`You need to reply to a message to ${action} a user`);

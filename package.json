@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "dotenv": "^16.4.4",
+    "grammy": "^1.20.4"
+  }
+}

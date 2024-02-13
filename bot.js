@@ -22,6 +22,15 @@ const bot = new Bot(process.env.BOT_TOKEN);
 const commands = ["start", "kick", "ban", "unban"];
 
 /**
+ * Checks if the message is a reply to the bot itself.
+ * @param {Object} ctx - The context object containing the message information.
+ * @returns {boolean} - Returns true if the message is a reply to the bot, otherwise false.
+ */
+const isMe = (ctx) => {
+    return ctx.message.reply_to_message && ctx.message.reply_to_message.from.id === ctx.me.id;
+};
+
+/**
  * Checks if the user is an administrator or creator.
  * @param {Object} ctx - The context object.
  * @returns {Promise<boolean>} - A promise that resolves to true if the user is an administrator or creator, otherwise false.
@@ -48,7 +57,11 @@ const canRestrict = async (ctx) => {
  * @param {Function} action - The action to perform on the target user.
  * @returns {Promise<void>} - A promise that resolves when the user is restricted.
  */
-async function restrictUser(ctx, action) {
+const restrictUser = async (ctx, action) => {
+    if (isMe(ctx)) {
+        ctx.reply("I can't restrict myself");
+        return;
+    }
     if (await isAdmin(ctx)) {
         if (await canRestrict(ctx) && ctx.message.reply_to_message) {
             const targetUser = ctx.message.reply_to_message.from.id;
@@ -65,6 +78,38 @@ async function restrictUser(ctx, action) {
         }
     } else {
         ctx.reply("You are not an administrator");
+    }
+};
+
+/**
+ * Applies an action to a target user in the chat.
+ * @param {Object} ctx - The context object.
+ * @param {string} action - The action to be applied (kick, ban, unban).
+ * @param {number} targetUser - The ID of the target user.
+ * @returns {Promise<void>} - A promise that resolves when the action is applied.
+ */
+const aplyAction = async (ctx, action, targetUser) => {
+    if (action === "kick" || action === "ban") {
+        await ctx.banChatMember(targetUser);
+    }
+    if (action === "kick" || action === "unban") {
+        await ctx.unbanChatMember(targetUser);
+    }
+};
+
+/**
+ * Handles the kick, ban, or unban action based on the provided context and action.
+ * @param {Object} ctx - The context object containing information about the message.
+ * @param {string} action - The action to be performed (kick, ban, or unban).
+ * @returns {Promise<void>} - A promise that resolves when the action is completed.
+ */
+const handleKickBanUnban = async (ctx, action) => {
+    if (ctx.message.reply_to_message) {
+        await restrictUser(ctx, async (targetUser) => {
+            await aplyAction(ctx, action, targetUser);
+        });
+    } else {
+        ctx.reply(`You need to reply to a message to ${action} a user`);
     }
 };
 
@@ -92,10 +137,7 @@ bot.command("help", async (ctx) => {
  * @param {Object} ctx - The context object.
  */
 bot.command("kick", async (ctx) => {
-    await restrictUser(ctx, async (targetUser) => {
-        await ctx.banChatMember(targetUser);
-        await ctx.unbanChatMember(targetUser);
-    });
+    await handleKickBanUnban(ctx, "kick");
 });
 
 /**
@@ -103,9 +145,7 @@ bot.command("kick", async (ctx) => {
  * @param {Object} ctx - The context object.
  */
 bot.command("ban", async (ctx) => {
-    await restrictUser(ctx, async (targetUser) => {
-        await ctx.banChatMember(targetUser);
-    });
+    await handleKickBanUnban(ctx, "ban");
 });
 
 /**
@@ -113,9 +153,7 @@ bot.command("ban", async (ctx) => {
  * @param {Object} ctx - The context object.
  */
 bot.command("unban", async (ctx) => {
-    await restrictUser(ctx, async (targetUser) => {
-        await ctx.unbanChatMember(targetUser);
-    });
+    await handleKickBanUnban(ctx, "unban");
 });
 
 /**

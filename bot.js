@@ -19,7 +19,7 @@ const bot = new Bot(process.env.BOT_TOKEN);
  * An array of available commands.
  * @type {string[]}
  */
-const commands = ["start", "kick", "ban", "unban"];
+const commands = ["start", "kick", "ban", "unban", "spark"];
 
 /**
  * Checks if the message is a reply to the bot itself.
@@ -114,6 +114,10 @@ const handleKickBanUnban = async (ctx, action) => {
     }
 };
 
+const saveSparks = async (ctx, sparks) => {
+    // TODO: Implement a way to save the sparks to a database
+};
+
 /**
  * Handles the "start" command.
  * @param {Object} ctx - The context object.
@@ -127,10 +131,7 @@ bot.command("start", async (ctx) => {
  * @param {Object} ctx - The context object.
  */
 bot.command("help", async (ctx) => {
-    ctx.reply("Available commands:\n");
-    commands.forEach((command) => {
-        ctx.reply(`/${command}`);
-    });
+    ctx.reply("Available commands: " + commands.join(", "));
 });
 
 /**
@@ -155,6 +156,47 @@ bot.command("ban", async (ctx) => {
  */
 bot.command("unban", async (ctx) => {
     await handleKickBanUnban(ctx, "unban");
+});
+
+/**
+ * Handles the "spark" command.
+ * @param {Object} ctx - The context object.
+ * @param {string[]} args - The arguments provided with the command.
+ * @returns {Promise<void>} - A promise that resolves when the command is handled.
+ */
+bot.command("spark", async (ctx) => {
+    /*
+        You can call the command with 1, 2 or 3 arguments.
+        If only 1 argument is provided, it will be the number of crystals.
+        If 2 arguments are provided, the first one will be the number of crystals and the second one will be the number of tickets.
+        If 3 arguments are provided, the first one will be the number of crystals, the second one will be the number of tickets and the third one will be the number of 10 draws tickets.
+        300 crystals = 1 draw
+        300 draws = 1 spark
+        example of use: /spark@bot 1200 30 1 | /spark@bot 1200 30 (0)| /spark@bot 1200 (0 0)
+    */
+    const args = ctx.message.text.split(" ").slice(1);
+
+    let crystals = 0;
+    let tickets = 0;
+    let tens = 0;
+    let total = 0;
+    let draws = 0;
+
+    if (args.length === 1) {
+        crystals = parseInt(args[0]);
+    } else if (args.length === 2) {
+        [crystals, tickets] = args.map(arg => parseInt(arg));
+    } else if (args.length === 3) {
+        [crystals, tickets, tens] = args.map(arg => parseInt(arg));
+    } else {
+        return ctx.reply("Invalid number of arguments. Usage: /spark <crystals> [<tickets>] [<10 draws tickets>]");
+    }
+
+    total = crystals + tickets * 300 + tens * 3000;
+    draws = total / 300;
+    saveSparks(ctx, draws);
+
+    ctx.reply(`You have ${draws.toFixed(1)} draws.\nYou are at ${(draws / 3000 * 1000).toFixed(2)}% of the spark`);
 });
 
 /**

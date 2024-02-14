@@ -22,6 +22,13 @@ const bot = new Bot(process.env.BOT_TOKEN);
 const commands = ["start", "kick", "ban", "unban", "spark"];
 
 /**
+ * Regular expression for matching Twitter and Reddit URLs.
+ * @type {RegExp}
+ */
+const regexTwitter = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/;
+const regexReddit = /https?:\/\/(?:www\.)?reddit\.com\/r\/\w+\/(?:comments|s)\/(\w+)(?:\/\w+)?\/?/;
+
+/**
  * Checks if the message is a reply to the bot itself.
  * @param {Object} ctx - The context object containing the message information.
  * @returns {boolean} - Returns true if the message is a reply to the bot, otherwise false.
@@ -203,11 +210,25 @@ bot.command("spark", async (ctx) => {
  * Handles messages containing Twitter URLs.
  * @param {Object} ctx - The context object.
  */
-bot.hears(/https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/g, async (ctx) => {
-    const tweetUser = ctx.message.text.match(/https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/(\w+)\/status\/\d+/)[1];
-    const tweetId = ctx.message.text.match(/\/status\/(\d+)/)[1];
-    const cleanedTweetUrl = `https://fxtwitter.com/${tweetUser}/status/${tweetId}`;
-    ctx.reply("From @" + ctx.message.from?.username + ":\n" + cleanedTweetUrl);
+bot.hears(regexTwitter, (ctx) => {
+    const tweetMatch = regexTwitter.exec(ctx.message.text);
+    if (tweetMatch) {
+        const tweetUser = ctx.message.text.match(/https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/(\w+)\/status\/\d+/)[1];
+        const tweetId = ctx.message.text.match(/\/status\/(\d+)/)[1];
+        const cleanedTweetUrl = `https://fxtwitter.com/${tweetUser}/status/${tweetId}`;
+        ctx.reply("From @" + ctx.message.from?.username + ":\n" + cleanedTweetUrl);
+    }
+});
+
+/**
+ * Handles messages containing Reddit URLs.
+ * @param {Object} ctx - The context object.
+ */
+bot.hears(regexReddit, async (ctx) => {
+    const url = ctx.message.text;
+    const parts = url.split("?");
+    const cleanedRedditUrl = parts[0].replace("reddit.com", "rxddit.com");
+    ctx.reply("From @" + ctx.message.from?.username + ":\n" + cleanedRedditUrl);
 });
 
 /**

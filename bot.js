@@ -3,6 +3,8 @@
  */
 require("dotenv").config();
 
+const express = require("express");
+
 /**
  * Represents a Telegram bot.
  * @class
@@ -58,50 +60,43 @@ const canRestrict = async (ctx) => {
 };
 
 /**
- * Restricts a user based on the provided action.
- * 
- * @param {Object} ctx - The context object.
- * @param {Function} action - The action to perform on the target user.
+ * Restricts a user in the chat based on the provided action and context.
+ * @param {*} ctx context object
+ * @param {*} action action to be applied
  * @returns {Promise<void>} - A promise that resolves when the user is restricted.
  */
 const restrictUser = async (ctx, action) => {
-    if (isMe(ctx)) {
-        ctx.reply("I can't restrict myself");
-        return;
-    }
-    if (await isAdmin(ctx)) {
-        if (await canRestrict(ctx) && ctx.message.reply_to_message) {
-            const targetUser = ctx.message.reply_to_message.from.id;
-            if (targetUser) {
-                try {
-                    await action(targetUser);
-                } catch (error) {
-                    console.error("Error:", error);
-                    ctx.reply("An error occurred while trying to restrict the user");
-                }
-            }
-        } else {
-            ctx.reply("I can't restrict members");
-        }
-    } else {
-        ctx.reply("You are not an administrator");
-    }
+    if (isMe(ctx)) return ctx.reply("I can't restrict myself");
+
+    if (!await isAdmin(ctx)) return ctx.reply("You are not an administrator");
+
+    if (!await canRestrict(ctx)) return ctx.reply("I can't restrict members");
+
+    const targetUser = ctx.message.reply_to_message?.from?.id;
+    if (!targetUser) return;
+
+    try {
+        await action(targetUser);
+    } catch (error) {
+        console.error("Error:", error);
+        ctx.reply("An error occurred while trying to restrict the user");
+    };
 };
 
 /**
  * Applies an action to a target user in the chat.
+ * If the user is kicked, they will be banned first and then unbanned.
  * @param {Object} ctx - The context object.
  * @param {string} action - The action to be applied (kick, ban, unban).
  * @param {number} targetUser - The ID of the target user.
  * @returns {Promise<void>} - A promise that resolves when the action is applied.
  */
-const aplyAction = async (ctx, action, targetUser) => {
-    if (action === "kick" || action === "ban") {
+const applyAction = async (ctx, action, targetUser) => {
+    if (action === "kick" || action === "ban")
         await ctx.banChatMember(targetUser);
-    }
-    if (action === "kick" || action === "unban") {
+
+    if (action === "kick" || action === "unban")
         await ctx.unbanChatMember(targetUser);
-    }
 };
 
 /**
@@ -114,7 +109,7 @@ const handleKickBanUnban = async (ctx, action) => {
     if (ctx.message.reply_to_message) {
         const repliedUser = ctx.message.reply_to_message.from.id;
         await restrictUser(ctx, async () => {
-            await aplyAction(ctx, action, repliedUser);
+            await applyAction(ctx, action, repliedUser);
         });
     } else {
         ctx.reply(`You need to reply to a message to ${action} a user`);
@@ -137,7 +132,7 @@ bot.command("start", async (ctx) => {
  * Handles the "help" command.
  * @param {Object} ctx - The context object.
  */
-bot.command("help", async (ctx) => {
+bot.command("help", (ctx) => {
     ctx.reply("Available commands: " + commands.join(", "));
 });
 
@@ -172,15 +167,6 @@ bot.command("unban", async (ctx) => {
  * @returns {Promise<void>} - A promise that resolves when the command is handled.
  */
 bot.command("spark", async (ctx) => {
-    /*
-        You can call the command with 1, 2 or 3 arguments.
-        If only 1 argument is provided, it will be the number of crystals.
-        If 2 arguments are provided, the first one will be the number of crystals and the second one will be the number of tickets.
-        If 3 arguments are provided, the first one will be the number of crystals, the second one will be the number of tickets and the third one will be the number of 10 draws tickets.
-        300 crystals = 1 draw
-        300 draws = 1 spark
-        example of use: /spark@bot 1200 30 1 | /spark@bot 1200 30 (0)| /spark@bot 1200 (0 0)
-    */
     const args = ctx.message.text.split(" ").slice(1);
 
     let crystals = 0;
@@ -236,12 +222,26 @@ bot.hears(regexReddit, async (ctx) => {
  * @param {Object} ctx - The context object.
  */
 bot.on("message:text", (ctx) => {
-    if (ctx.message.text === "Hola") {
+    if (ctx.message.text === "Hola" && ctx.message.chat.type === "private")
         ctx.reply("UwU");
-    }
 });
 
 /**
  * Starts the bot.
  */
 bot.start();
+
+/**
+ * Starts the express server.
+ */
+
+const PORT = process.env.PORT;
+const app = express();
+
+app.get("/", (req, res) => {
+    res.send("<h1 style='color:green; text-align: center;'>Bot is running</h1>");
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});

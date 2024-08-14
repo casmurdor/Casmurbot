@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "dotenv": "^16.4.4",
+    "express": "^4.19.2",
     "grammy": "^1.20.4"
   }
 }

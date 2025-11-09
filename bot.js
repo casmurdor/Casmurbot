@@ -1,15 +1,15 @@
 /**
  * Loads environment variables from a .env file into process.env.
  */
-require("dotenv").config();
+import "dotenv/config";
 
-const express = require("express");
+import express from "express";
 
 /**
  * Represents a Telegram bot.
  * @class
  */
-const { Bot } = require("grammy");
+import { Bot } from "grammy";
 
 /**
  * Creates a new instance of the Bot class.
@@ -199,8 +199,8 @@ bot.command("spark", async (ctx) => {
 bot.hears(regexTwitter, (ctx) => {
     const tweetMatch = regexTwitter.exec(ctx.message.text);
     if (tweetMatch) {
-        const tweetUser = ctx.message.text.match(/https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/(\w+)\/status\/\d+/)[1];
-        const tweetId = ctx.message.text.match(/\/status\/(\d+)/)[1];
+        const tweetUser = RegExp(/https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/(\w+)\/status\/\d+/).exec(ctx.message.text)[1];
+        const tweetId = RegExp(/\/status\/(\d+)/).exec(ctx.message.text)[1];
         const cleanedTweetUrl = `https://fxtwitter.com/${tweetUser}/status/${tweetId}`;
         ctx.reply("From @" + ctx.message.from?.username + ":\n" + cleanedTweetUrl);
     }

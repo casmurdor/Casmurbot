@@ -1,7 +1,16 @@
 {
+  "name": "casmurbot",
+  "version": "1.0.0",
+  "description": "Telegram bot made with grammY.",
+  "author": "Casmurdor",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
   "dependencies": {
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "grammy": "^1.38.3"
-  }
+  },
+  "type": "module"
 }
